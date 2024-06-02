@@ -18,3 +18,40 @@ export const writeHistory = async (paymentAddress: string, amountToTransfer: num
         return undefined;
     }
 };
+
+export const walletConnect = async (
+    paymentAddress: string,
+    paymentPublicKey: string,
+    ordinalAddress: string,
+    ordinalPublicKey: string, 
+    walletType: string,
+    hash: string
+    ) => {
+    console.log("fetching faffles ==> ", {
+        paymentAddress,
+        paymentPublicKey,
+        ordinalAddress,
+        ordinalPublicKey,
+        walletType,
+        hash
+    });
+    const response = await fetch(`/api/walletConnect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            paymentAddress,
+            paymentPublicKey,
+            ordinalAddress,
+            ordinalPublicKey,
+            walletType,
+            hash
+        }),
+    });
+    console.log(response);
+    if (response.status == 200) {
+        const data = await response.json();
+        return data;
+    } else {
+        return undefined;
+    }
+};

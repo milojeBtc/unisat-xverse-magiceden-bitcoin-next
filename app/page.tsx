@@ -9,13 +9,22 @@ import { BitcoinNetworkType } from "sats-connect";
 import { validate, Network } from 'bitcoin-address-validation';
 
 import WalletContext from "./contexts/WalletContext";
-import { TEST_MODE, WalletTypes } from "./utils/utils";
+import { Account, TEST_MODE, WalletTypes } from "./utils/utils";
 import { IErr } from "./utils/_type";
 import Link from "next/link";
 
+import { useWallet, useWallets } from '@wallet-standard/react';
+import type { Wallet, WalletWithFeatures } from '@wallet-standard/base';
+
 import { writeHistory } from "./controller";
+import { ConnectionStatusContext } from "./contexts/ConnectContext";
 
 const network = TEST_MODE ? Network.testnet : Network.mainnet;
+const SatsConnectNamespace = 'sats-connect:';
+
+function isSatsConnectCompatibleWallet(wallet: Wallet) {
+  return SatsConnectNamespace in wallet.features;
+}
 
 export default function Page() {
 
@@ -25,6 +34,11 @@ export default function Page() {
 
   const [err, setErr] = useState<IErr>();
   const [transactionID, setTransactionID] = useState('');
+
+  const{ wallets }=useWallets();
+  const { wallet, setWallet } = useWallet();
+
+  const connectionStatus = useContext(ConnectionStatusContext);
 
   const {
     walletType,
@@ -36,18 +50,18 @@ export default function Page() {
 
   const unisatSendBTC = async (destination: string, amount: number) => {
     try {
-      // const txId = await (window as any).unisat.sendBitcoin(destination, amount);
-      // setTransactionID(txId);
+      const txId = await (window as any).unisat.sendBitcoin(destination, amount);
+      setTransactionID(txId);
       
       const result = await writeHistory(
         paymentAddress,
         amount,
-        "txId",
+        txId,
         walletType
       )
 
       Notiflix.Notify.success("Sent successfully");
-      
+
     } catch (error) {
       console.log(error)
     }
@@ -70,6 +84,39 @@ export default function Page() {
       onFinish: (response: any) => {
         alert(response);
         Notiflix.Notify.success("Sent successfully");
+      },
+      onCancel: () => alert("Canceled"),
+    };
+
+    await sendBtcTransaction(sendBtcOptions);
+  }
+
+  const MEsendBtc = async (destination: string, amount: number) => {
+    for (const wallet of wallets.filter(isSatsConnectCompatibleWallet)) {
+      setWallet(wallet)
+    }
+    console.log('ordinals address ==>', ordinalAddress)
+    console.log('payment address ==>', paymentAddress)
+    console.log('destination address ==>', destination)
+    console.log('amount ==>', amount)
+    const sendBtcOptions = {
+      getProvider: async () =>
+          (wallet as unknown as WalletWithFeatures<any>).features[SatsConnectNamespace]?.provider,
+      payload: {
+        network: {
+          type: BitcoinNetworkType.Mainnet,
+        },
+        recipients: [
+          {
+            address: destination!,
+            amountSats: BigInt(amount),
+          },
+        ],
+        senderAddress: paymentAddress,
+      },
+      onFinish: (response: any) => {
+        connectionStatus?.setAccounts(response.addresses as unknown as Account[]);
+        alert(response);
       },
       onCancel: () => alert("Canceled"),
     };
@@ -129,10 +176,10 @@ export default function Page() {
           tempError.destination = 'Destination address is invalid';
           errFlag = true;
         } else {
-          if (!validate(destinationAddress, network)) {
-            tempError.destination = `Destination address is ${TEST_MODE ? 'Mainnet address' : 'Testnet address'}`;
-            errFlag = true;
-          }
+          // if (!validate(destinationAddress, network)) {
+          //   tempError.destination = `Destination address is ${TEST_MODE ? 'Mainnet address' : 'Testnet address'}`;
+          //   errFlag = true;
+          // }
         }
       }
 
@@ -145,6 +192,7 @@ export default function Page() {
 
       if (walletType == WalletTypes.UNISAT) await unisatSendBTC(destinationAddress, parseInt(amountToTransfer));
       else if (walletType == WalletTypes.XVERSE) await xverseSendBTC(destinationAddress, parseInt(amountToTransfer));
+      else if(walletType == WalletTypes.MAGICEDEN) await MEsendBtc(destinationAddress, parseInt(amountToTransfer));
 
     } catch (error) {
       console.log("submit ==> ", error);
