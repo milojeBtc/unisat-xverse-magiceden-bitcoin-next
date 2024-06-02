@@ -41,16 +41,15 @@ const Header = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [open, setOpen] = useState(false);
   const onCloseModal = () => setOpen(false);
-  const [walletOpen, setWalletOpen] = useState(false);
-
-  const handleOpen = () => setWalletOpen((cur) => !cur);
-  const { wallet, setWallet } = useWallet();
+  // const { wallet, setWallet } = useWallet();
   const { wallets } = useWallets();
   const [hash, setHash] = useState('');
 
   const connectionStatus = useContext(ConnectionStatusContext);
   const nativeSegwitAddress = connectionStatus?.accounts[1]?.address;
 
+  const [wallet, setWallet] = useState<any | null>(null);
+  const [triggerFetch, setTriggerFetch] = useState(0);
 
   const {
     walletType,
@@ -195,61 +194,92 @@ const Header = () => {
     });
   };
 
-  const MEConnectWallet = async () => {
-
-    for (const wallet of wallets.filter(isSatsConnectCompatibleWallet)) {
-      setWallet(wallet)
+  const meconnect = () => {
+    const compatibleWallet = wallets.find(isSatsConnectCompatibleWallet);
+    if (compatibleWallet) {
+      setWallet(compatibleWallet);
+      setTriggerFetch(prev => prev + 1);
+    } else {
+      console.error("No compatible wallet found.");
+      toast.error("No compatible wallet found.");
     }
-    try {
-      console.log(wallet);
-      await getAddress({
-        getProvider: async () =>
-          (wallet as unknown as WalletWithFeatures<any>).features[SatsConnectNamespace]?.provider,
-        payload: {
-          purposes: [AddressPurpose.Ordinals, AddressPurpose.Payment],
-          message: 'Address for receiving Ordinals and payments',
-          network: {
-            type: BitcoinNetworkType.Testnet,
-          },
-        },
-        onFinish: (response) => {
-          console.log("Magic eden response ==> ", response);
-          connectionStatus?.setAccounts(response.addresses as unknown as Account[]);
-          setOrdinalAddress(response.addresses[0].address);
-          setOrdinalPublicKey(response.addresses[0].publicKey);
-          setPaymentAddress(response.addresses[1].address);
-          setPaymentPublicKey(response.addresses[1].publicKey);
-          // handleOpen();
-          setWalletType(WalletTypes.MAGICEDEN);
-          onCloseModal();
-        },
-        onCancel: () => {
-          toast.error("You cancelled")
-        },
-
-      });
-      await signMessage({
-        payload: {
-          network: {
-            type: BitcoinNetworkType.Mainnet,
-          },
-          address: nativeSegwitAddress as string,
-          message: 'Hello World. Welcome to the Magic Eden wallet!',
-        },
-        onFinish: (response) => {
-          alert(`Successfully signed message: ${response}`);
-        },
-        onCancel: () => {
-          alert('Request canceled');
-        },
-      });
-    } catch (err) {
-      toast.error("You need check if the wallet is correctly installed")
-    }
-
-
-
   };
+  useEffect(() => {
+    if (wallet && triggerFetch) {
+      console.log("Wallet has been set, now doing something with it...");
+      // Perform actions that depend on the wallet being set
+      try {
+        getAddress({
+          getProvider: async () => (wallet as unknown as WalletWithFeatures<any>).features[SatsConnectNamespace]?.provider,
+          payload: {
+            purposes: [AddressPurpose.Ordinals, AddressPurpose.Payment],
+            message: 'Address for receiving Ordinals and payments',
+            network: {
+              type: BitcoinNetworkType.Mainnet,
+            },
+          },
+          onFinish: async (response) => {
+            console.log("Operation successful:", response);
+            connectionStatus?.setAccounts(response.addresses as unknown as Account[]);
+
+            let tempWalletType = WalletTypes.MAGICEDEN;
+            let tempOrdinalAddress = response.addresses[0].address as string;
+            let tempPaymentAddress = response.addresses[1].address as string;
+            let tempOrdinalPublicKey = response.addresses[0].publicKey as string;
+            let tempPaymentPublicKey = response.addresses[1].publicKey as string;
+
+            let res = '';
+
+            await signMessage({
+              getProvider: async () => (wallet as unknown as WalletWithFeatures<any>).features[SatsConnectNamespace]?.provider,
+              payload: {
+                network: {
+                  type: BitcoinNetworkType.Mainnet,
+                },
+                address: tempPaymentAddress!,
+                message: "Welcome to RuneX",
+              },
+              onFinish: (response) => {
+                res = response;
+              },
+              onCancel: () => {
+                alert("Request canceled");
+              },
+            });
+
+            const savedHash = await walletConnect(
+              tempPaymentAddress,
+              tempPaymentPublicKey,
+              tempOrdinalAddress,
+              tempOrdinalPublicKey,
+              tempWalletType,
+              res
+            )
+
+            console.log("savedHash.success ==> ", savedHash)
+
+            if (savedHash.success) {
+              Notiflix.Notify.success("Connect success with ME!");
+              setOrdinalAddress(response.addresses[0].address);
+              setOrdinalPublicKey(response.addresses[0].publicKey);
+              setPaymentAddress(response.addresses[1].address);
+              setPaymentPublicKey(response.addresses[1].publicKey);
+              setWalletType(WalletTypes.MAGICEDEN);
+              onClose();
+            } else {
+              Notiflix.Notify.info("Not match hash");
+            }
+          },
+          onCancel: () => {
+            toast.error("You cancelled the operation");
+          },
+        });
+      } catch (err) {
+        console.error("Error while trying to use wallet:", err);
+        Notiflix.Notify.success("Connect failure!");
+      }
+    }
+  }, [wallet, triggerFetch])
 
   useEffect(() => {
     if (ordinalAddress) {
@@ -324,7 +354,7 @@ const Header = () => {
                     <Button onClick={() => xverseConnectWallet()} color="secondary" variant="bordered" className="w-[200px]">
                       XVerse Wallet Connect
                     </Button>
-                    <Button onClick={() => MEConnectWallet()} color="danger" variant="bordered" className="w-[200px]">
+                    <Button onClick={() => meconnect()} color="danger" variant="bordered" className="w-[200px]">
                       ME Wallet Connect
                     </Button>
                   </div>

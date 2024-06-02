@@ -27,14 +27,7 @@ export const walletConnect = async (
     walletType: string,
     hash: string
     ) => {
-    console.log("fetching faffles ==> ", {
-        paymentAddress,
-        paymentPublicKey,
-        ordinalAddress,
-        ordinalPublicKey,
-        walletType,
-        hash
-    });
+    
     const response = await fetch(`/api/walletConnect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

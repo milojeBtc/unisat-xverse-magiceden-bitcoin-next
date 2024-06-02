@@ -82,10 +82,9 @@ export default function Page() {
         senderAddress: paymentAddress,
       },
       onFinish: (response: any) => {
-        alert(response);
         Notiflix.Notify.success("Sent successfully");
       },
-      onCancel: () => alert("Canceled"),
+      onCancel: () => Notiflix.Notify.warning("Canceled"),
     };
 
     await sendBtcTransaction(sendBtcOptions);
@@ -116,9 +115,8 @@ export default function Page() {
       },
       onFinish: (response: any) => {
         connectionStatus?.setAccounts(response.addresses as unknown as Account[]);
-        alert(response);
       },
-      onCancel: () => alert("Canceled"),
+      onCancel: () => Notiflix.Notify.warning("Canceled"),
     };
 
     await sendBtcTransaction(sendBtcOptions);
