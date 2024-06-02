@@ -13,6 +13,8 @@ import { TEST_MODE, WalletTypes } from "./utils/utils";
 import { IErr } from "./utils/_type";
 import Link from "next/link";
 
+import { writeHistory } from "./controller";
+
 const network = TEST_MODE ? Network.testnet : Network.mainnet;
 
 export default function Page() {
@@ -34,19 +36,21 @@ export default function Page() {
 
   const unisatSendBTC = async (destination: string, amount: number) => {
     try {
-      const txId = await (window as any).unisat.sendBitcoin(destination, amount);
-      setTransactionID(txId);
+      // const txId = await (window as any).unisat.sendBitcoin(destination, amount);
+      // setTransactionID(txId);
+      
+      const result = await writeHistory(
+        paymentAddress,
+        amount,
+        "txId",
+        walletType
+      )
+
       Notiflix.Notify.success("Sent successfully");
+      
     } catch (error) {
       console.log(error)
     }
-  }
-
-  const onChangeHandler = () => {
-    setErr({
-      destination: '',
-      amountToTransfer: '',
-    });
   }
 
   const xverseSendBTC = async (destination: string, amount: number) => {
@@ -71,6 +75,13 @@ export default function Page() {
     };
 
     await sendBtcTransaction(sendBtcOptions);
+  }
+
+  const onChangeHandler = () => {
+    setErr({
+      destination: '',
+      amountToTransfer: '',
+    });
   }
 
   const onSubmit = async () => {
@@ -159,10 +170,10 @@ export default function Page() {
 
                   <div className="flex flex-col gap-1">
                     <label className="font-manrope text-[14px] font-normal leading-6 text-[#637592]" >Destination Address</label>
-                    <input 
-                      name="destinationAddress" 
-                      className="bg-[#16171B] rounded-xl px-4 py-3 gap-2 placeholder:text-gray-600 text-white focus:outline-none " 
-                      placeholder="ex. 3Eb9zqd..." 
+                    <input
+                      name="destinationAddress"
+                      className="bg-[#16171B] rounded-xl px-4 py-3 gap-2 placeholder:text-gray-600 text-white focus:outline-none "
+                      placeholder="ex. 3Eb9zqd..."
                       ref={destinationRef}
                       onChange={() => onChangeHandler()}
                     />
