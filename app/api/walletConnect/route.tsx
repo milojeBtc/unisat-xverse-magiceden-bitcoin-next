@@ -32,7 +32,6 @@ export async function POST(request: NextRequest) {
 
         console.log(config);
         const response = await axios.request(config);
-        console.log("response ==> ", response);
 
         return Response.json(response.data);
     } catch (error) {
