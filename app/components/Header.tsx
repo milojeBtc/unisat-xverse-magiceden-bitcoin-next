@@ -8,18 +8,17 @@ import {
   getAddress,
   signMessage,
 } from "sats-connect";
-import { verifyMessage } from "@unisat/wallet-utils";
-import { type BtcAddress } from "@btckit/types";
+
 import Notiflix from "notiflix";
 import WalletConnectIcon from "./Icon/WalletConnectIcon";
 import WalletContext from "../contexts/WalletContext";
 import { WalletTypes, Account, SIGN_MESSAGE } from "../utils/utils";
 
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import * as bitcoin from 'bitcoinjs-lib';
+
 import type { Wallet, WalletWithFeatures } from '@wallet-standard/base';
-import { useWallet, useWallets } from '@wallet-standard/react';
+import { useWallets } from '@wallet-standard/react';
 import { ConnectionStatusContext } from '../contexts/ConnectContext';
 import { walletConnect } from "../controller";
 const SatsConnectNamespace = 'sats-connect:';
@@ -32,31 +31,20 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [pageIndex, setPageIndex] = React.useState(-1);
   const router = useRouter();
-  const gotoPage = (route: string, index: number) => {
-    console.log('pageIndex ==> ', index);
-    setPageIndex(index);
-    router.push(route);
-  };
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [open, setOpen] = useState(false);
-  const onCloseModal = () => setOpen(false);
-  // const { wallet, setWallet } = useWallet();
   const { wallets } = useWallets();
   const [hash, setHash] = useState('');
 
   const connectionStatus = useContext(ConnectionStatusContext);
-  const nativeSegwitAddress = connectionStatus?.accounts[1]?.address;
 
   const [wallet, setWallet] = useState<any | null>(null);
   const [triggerFetch, setTriggerFetch] = useState(0);
 
   const {
-    walletType,
     ordinalAddress,
     paymentAddress,
-    ordinalPublicKey,
-    paymentPublicKey,
     setWalletType,
     setOrdinalAddress,
     setPaymentAddress,
@@ -64,144 +52,143 @@ const Header = () => {
     setOrdinalPublicKey,
   } = useContext(WalletContext);
 
-  const isConnected = Boolean(ordinalAddress);
-
   const unisatConnectWallet = async () => {
-    const currentWindow: any = window;
-    if (typeof currentWindow?.unisat !== "undefined") {
-      const unisat: any = currentWindow?.unisat;
-      try {
-        let accounts: string[] = await unisat.requestAccounts();
-        let pubkey = await unisat.getPublicKey();
+    try {
+      const currentWindow: any = window;
+      if (typeof currentWindow?.unisat !== "undefined") {
+        const unisat: any = currentWindow?.unisat;
+        try {
+          let accounts: string[] = await unisat.requestAccounts();
+          let pubkey = await unisat.getPublicKey();
 
-        let res = await unisat.signMessage(SIGN_MESSAGE);
-        setHash(res);
-        console.log("res ==> ", res);
+          let res = await unisat.signMessage(SIGN_MESSAGE);
+          setHash(res);
+          console.log("res ==> ", res);
 
-        const tempWalletType = WalletTypes.UNISAT;
-        const tempOrdinalAddress = accounts[0];
-        const tempPaymentAddress = accounts[0];
-        const tempOrdinalPublicKey = pubkey;
-        const tempPaymentPublicKey = pubkey;
+          const tempWalletType = WalletTypes.UNISAT;
+          const tempOrdinalAddress = accounts[0];
+          const tempPaymentAddress = accounts[0];
+          const tempOrdinalPublicKey = pubkey;
+          const tempPaymentPublicKey = pubkey;
 
-        const savedHash = await walletConnect(
-          tempPaymentAddress,
-          tempPaymentPublicKey,
-          tempOrdinalAddress,
-          tempOrdinalPublicKey,
-          tempWalletType,
-          res
-        )
+          const savedHash = await walletConnect(
+            tempPaymentAddress,
+            tempPaymentPublicKey,
+            tempOrdinalAddress,
+            tempOrdinalPublicKey,
+            tempWalletType,
+            res
+          )
 
-        if (savedHash.success) {
-          Notiflix.Notify.success("Connect succes!");
-          setWalletType(WalletTypes.UNISAT);
-          setOrdinalAddress(accounts[0] || "");
-          setPaymentAddress(accounts[0] || "");
-          setOrdinalPublicKey(pubkey);
-          setPaymentPublicKey(pubkey);
+          if (savedHash.success) {
+            Notiflix.Notify.success("Connect succes!");
+            setWalletType(WalletTypes.UNISAT);
+            setOrdinalAddress(accounts[0] || "");
+            setPaymentAddress(accounts[0] || "");
+            setOrdinalPublicKey(pubkey);
+            setPaymentPublicKey(pubkey);
 
-          onClose();
-        } else {
-          Notiflix.Notify.failure("No match hash!");
+            onClose();
+          } else {
+            Notiflix.Notify.failure("No match hash!");
+          }
+
+        } catch (e) {
+          Notiflix.Notify.failure("Connect failed!");
         }
-
-        console.log("savedHash ==> ", savedHash);
-
-        // const message = "abcdefghijk123456789";
-        // const signature = "G+LrYa7T5dUMDgQduAErw+i6ebK4GqTXYVWIDM+snYk7Yc6LdPitmaqM6j+iJOeID1CsMXOJFpVopvPiHBdulkE=";
-
-        // const result = verifyMessage(pubkey, message, signature);
-        // console.log("result ==> ", result);
-
-
-      } catch (e) {
-        Notiflix.Notify.failure("Connect failed!");
       }
+    } catch (error) {
+      console.log("unisatConnectWallet error ==> ", error);
     }
   };
 
   const xverseConnectWallet = async () => {
-    await getAddress({
-      payload: {
-        purposes: [
-          AddressPurpose.Ordinals,
-          AddressPurpose.Payment,
-          AddressPurpose.Stacks,
-        ],
-        message: "Welcome RuneX",
-        network: {
-          type: BitcoinNetworkType.Testnet,
+    try {
+      await getAddress({
+        payload: {
+          purposes: [
+            AddressPurpose.Ordinals,
+            AddressPurpose.Payment,
+            AddressPurpose.Stacks,
+          ],
+          message: "Welcome RuneX",
+          network: {
+            type: BitcoinNetworkType.Testnet,
+          },
         },
-      },
-      onFinish: async (response) => {
-        const paymentAddressItem = response.addresses.find(
-          (address) => address.purpose === AddressPurpose.Payment
-        );
-        const ordinalsAddressItem = response.addresses.find(
-          (address) => address.purpose === AddressPurpose.Ordinals
-        );
+        onFinish: async (response) => {
+          const paymentAddressItem = response.addresses.find(
+            (address) => address.purpose === AddressPurpose.Payment
+          );
+          const ordinalsAddressItem = response.addresses.find(
+            (address) => address.purpose === AddressPurpose.Ordinals
+          );
 
-        let tempWalletType = WalletTypes.XVERSE;
-        let tempOrdinalAddress = ordinalsAddressItem?.address as string;
-        let tempPaymentAddress = paymentAddressItem?.address as string;
-        let tempOrdinalPublicKey = ordinalsAddressItem?.publicKey as string;
-        let tempPaymentPublicKey = paymentAddressItem?.publicKey as string;
+          let tempWalletType = WalletTypes.XVERSE;
+          let tempOrdinalAddress = ordinalsAddressItem?.address as string;
+          let tempPaymentAddress = paymentAddressItem?.address as string;
+          let tempOrdinalPublicKey = ordinalsAddressItem?.publicKey as string;
+          let tempPaymentPublicKey = paymentAddressItem?.publicKey as string;
 
-        let res = ''
-        await signMessage({
-          payload: {
-            network: {
-              type: BitcoinNetworkType.Testnet,
+          let res = ''
+          await signMessage({
+            payload: {
+              network: {
+                type: BitcoinNetworkType.Testnet,
+              },
+              address: paymentAddressItem?.address as string,
+              message: "Sign in RuneX",
             },
-            address: paymentAddressItem?.address as string,
-            message: "Sign in RuneX",
-          },
-          onFinish: (response: any) => {
-            // signature
-            res = response;
-            return response;
-          },
-          onCancel: () => alert("Canceled"),
-        });
-        console.log("savedHash ==>", res);
+            onFinish: (response: any) => {
+              // signature
+              res = response;
+              return response;
+            },
+            onCancel: () => alert("Canceled"),
+          });
+          console.log("savedHash ==>", res);
 
-        const savedHash = await walletConnect(
-          tempPaymentAddress,
-          tempPaymentPublicKey,
-          tempOrdinalAddress,
-          tempOrdinalPublicKey,
-          tempWalletType,
-          res
-        )
+          const savedHash = await walletConnect(
+            tempPaymentAddress,
+            tempPaymentPublicKey,
+            tempOrdinalAddress,
+            tempOrdinalPublicKey,
+            tempWalletType,
+            res
+          )
 
-        if (savedHash.success) {
-          Notiflix.Notify.success("Connect succes!");
-          setWalletType(WalletTypes.XVERSE);
-          setPaymentAddress(paymentAddressItem?.address as string);
-          setPaymentPublicKey(paymentAddressItem?.publicKey as string);
-          setOrdinalAddress(ordinalsAddressItem?.address as string);
-          setOrdinalPublicKey(ordinalsAddressItem?.publicKey as string);
+          if (savedHash.success) {
+            Notiflix.Notify.success("Connect succes!");
+            setWalletType(WalletTypes.XVERSE);
+            setPaymentAddress(paymentAddressItem?.address as string);
+            setPaymentPublicKey(paymentAddressItem?.publicKey as string);
+            setOrdinalAddress(ordinalsAddressItem?.address as string);
+            setOrdinalPublicKey(ordinalsAddressItem?.publicKey as string);
 
-          onClose();
-        } else {
-          Notiflix.Notify.failure("No match hash!");
-        }
-
-
-      },
-      onCancel: () => alert("Request canceled"),
-    });
+            onClose();
+          } else {
+            Notiflix.Notify.failure("No match hash!");
+          }
+        },
+        onCancel: () => alert("Request canceled"),
+      });
+    } catch (error) {
+      console.log("xverseConnectWallet error ==> ", error);
+    }
   };
 
   const meconnect = () => {
-    const compatibleWallet = wallets.find(isSatsConnectCompatibleWallet);
-    if (compatibleWallet) {
-      setWallet(compatibleWallet);
-      setTriggerFetch(prev => prev + 1);
-    } else {
-      console.error("No compatible wallet found.");
-      toast.error("No compatible wallet found.");
+    try {
+      const compatibleWallet = wallets.find(isSatsConnectCompatibleWallet);
+      if (compatibleWallet) {
+        setWallet(compatibleWallet);
+        setTriggerFetch(prev => prev + 1);
+      } else {
+        console.error("No compatible wallet found.");
+        toast.error("No compatible wallet found.");
+      }
+    } catch (error) {
+      console.log("meconnect error ==> ", error);
     }
   };
   useEffect(() => {

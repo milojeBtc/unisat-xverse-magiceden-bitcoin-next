@@ -35,7 +35,7 @@ export default function Page() {
   const [err, setErr] = useState<IErr>();
   const [transactionID, setTransactionID] = useState('');
 
-  const{ wallets }=useWallets();
+  const { wallets } = useWallets();
   const { wallet, setWallet } = useWallet();
 
   const connectionStatus = useContext(ConnectionStatusContext);
@@ -52,7 +52,7 @@ export default function Page() {
     try {
       const txId = await (window as any).unisat.sendBitcoin(destination, amount);
       setTransactionID(txId);
-      
+
       const result = await writeHistory(
         paymentAddress,
         amount,
@@ -68,58 +68,62 @@ export default function Page() {
   }
 
   const xverseSendBTC = async (destination: string, amount: number) => {
-    const sendBtcOptions = {
-      payload: {
-        network: {
-          type: BitcoinNetworkType.Testnet,
-        },
-        recipients: [
-          {
-            address: destination,
-            amountSats: BigInt(amount),
+    try {
+      const sendBtcOptions = {
+        payload: {
+          network: {
+            type: BitcoinNetworkType.Testnet,
           },
-        ],
-        senderAddress: paymentAddress,
-      },
-      onFinish: (response: any) => {
-        Notiflix.Notify.success("Sent successfully");
-      },
-      onCancel: () => Notiflix.Notify.warning("Canceled"),
-    };
+          recipients: [
+            {
+              address: destination,
+              amountSats: BigInt(amount),
+            },
+          ],
+          senderAddress: paymentAddress,
+        },
+        onFinish: (response: any) => {
+          Notiflix.Notify.success("Sent successfully");
+        },
+        onCancel: () => Notiflix.Notify.warning("Canceled"),
+      };
 
-    await sendBtcTransaction(sendBtcOptions);
+      await sendBtcTransaction(sendBtcOptions);
+    } catch (error) {
+      console.log(error)
+    }
+
   }
 
   const MEsendBtc = async (destination: string, amount: number) => {
-    for (const wallet of wallets.filter(isSatsConnectCompatibleWallet)) {
-      setWallet(wallet)
-    }
-    console.log('ordinals address ==>', ordinalAddress)
-    console.log('payment address ==>', paymentAddress)
-    console.log('destination address ==>', destination)
-    console.log('amount ==>', amount)
-    const sendBtcOptions = {
-      getProvider: async () =>
+    try {
+      for (const wallet of wallets.filter(isSatsConnectCompatibleWallet)) {
+        setWallet(wallet)
+      }
+      const sendBtcOptions = {
+        getProvider: async () =>
           (wallet as unknown as WalletWithFeatures<any>).features[SatsConnectNamespace]?.provider,
-      payload: {
-        network: {
-          type: BitcoinNetworkType.Mainnet,
-        },
-        recipients: [
-          {
-            address: destination!,
-            amountSats: BigInt(amount),
+        payload: {
+          network: {
+            type: BitcoinNetworkType.Mainnet,
           },
-        ],
-        senderAddress: paymentAddress,
-      },
-      onFinish: (response: any) => {
-        connectionStatus?.setAccounts(response.addresses as unknown as Account[]);
-      },
-      onCancel: () => Notiflix.Notify.warning("Canceled"),
-    };
-
-    await sendBtcTransaction(sendBtcOptions);
+          recipients: [
+            {
+              address: destination!,
+              amountSats: BigInt(amount),
+            },
+          ],
+          senderAddress: paymentAddress,
+        },
+        onFinish: (response: any) => {
+          connectionStatus?.setAccounts(response.addresses as unknown as Account[]);
+        },
+        onCancel: () => Notiflix.Notify.warning("Canceled"),
+      };
+      await sendBtcTransaction(sendBtcOptions);
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   const onChangeHandler = () => {
@@ -190,7 +194,7 @@ export default function Page() {
 
       if (walletType == WalletTypes.UNISAT) await unisatSendBTC(destinationAddress, parseInt(amountToTransfer));
       else if (walletType == WalletTypes.XVERSE) await xverseSendBTC(destinationAddress, parseInt(amountToTransfer));
-      else if(walletType == WalletTypes.MAGICEDEN) await MEsendBtc(destinationAddress, parseInt(amountToTransfer));
+      else if (walletType == WalletTypes.MAGICEDEN) await MEsendBtc(destinationAddress, parseInt(amountToTransfer));
 
     } catch (error) {
       console.log("submit ==> ", error);

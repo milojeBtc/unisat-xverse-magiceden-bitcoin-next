@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, createContext } from 'react';
 import type { FC, ReactNode } from 'react';
-import { WalletTypes, Account } from "../utils/utils";
+import { Account } from "../utils/utils";
 
 export const ConnectionStatusContext = createContext<{
     isConnected: boolean;
