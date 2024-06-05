@@ -150,8 +150,6 @@ export default function Page() {
 
       if (amountToTransferRef.current) {
         amountToTransfer = amountToTransferRef.current['value'];
-        console.log("amountToTransfer ==>", amountToTransfer);
-        console.log("amountToTransferRef.current['value'] ==>", amountToTransferRef.current['value']);
       }
 
       if (!amountToTransfer) {
@@ -173,20 +171,10 @@ export default function Page() {
       if (!destinationAddress) {
         tempError.destination = 'Destination address is required';
         errFlag = true;
-      } else {
-        if (!validate(destinationAddress)) {
-          tempError.destination = 'Destination address is invalid';
-          errFlag = true;
-        } else {
-          // if (!validate(destinationAddress, network)) {
-          //   tempError.destination = `Destination address is ${TEST_MODE ? 'Mainnet address' : 'Testnet address'}`;
-          //   errFlag = true;
-          // }
-        }
+      } else if (!validate(destinationAddress)) {
+        tempError.destination = 'Destination address is invalid';
+        errFlag = true;
       }
-
-      console.log("tempError ==>", tempError)
-
       if (errFlag) {
         setErr(tempError);
         return;

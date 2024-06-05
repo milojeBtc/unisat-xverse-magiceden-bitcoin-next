@@ -63,7 +63,6 @@ const Header = () => {
 
           let res = await unisat.signMessage(SIGN_MESSAGE);
           setHash(res);
-          console.log("res ==> ", res);
 
           const tempWalletType = WalletTypes.UNISAT;
           const tempOrdinalAddress = accounts[0];
@@ -146,7 +145,6 @@ const Header = () => {
             },
             onCancel: () => alert("Canceled"),
           });
-          console.log("savedHash ==>", res);
 
           const savedHash = await walletConnect(
             tempPaymentAddress,
@@ -206,7 +204,6 @@ const Header = () => {
             },
           },
           onFinish: async (response) => {
-            console.log("Operation successful:", response);
             connectionStatus?.setAccounts(response.addresses as unknown as Account[]);
 
             let tempWalletType = WalletTypes.MAGICEDEN;
@@ -242,8 +239,6 @@ const Header = () => {
               tempWalletType,
               res
             )
-
-            console.log("savedHash.success ==> ", savedHash)
 
             if (savedHash.success) {
               Notiflix.Notify.success("Connect success with ME!");

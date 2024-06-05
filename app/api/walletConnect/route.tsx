@@ -14,8 +14,6 @@ export async function POST(request: NextRequest) {
         } = await request.json();
         const axios = require("axios");
 
-        console.log("Next Backend request.json() ==> ", request.json())
-
         let config = {
             method: "post",
             url: `${process.env.NEXT_PUBLIC_BACKEND}/api/walletConnect`,
@@ -30,7 +28,6 @@ export async function POST(request: NextRequest) {
             }),
         };
 
-        console.log(config);
         const response = await axios.request(config);
 
         return Response.json(response.data);
